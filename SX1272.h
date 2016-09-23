@@ -242,6 +242,20 @@ const uint32_t CH_10_900 = 0xE72B85; // channel 10, central freq = 924.68MHz
 const uint32_t CH_11_900 = 0xE7B5C2; // channel 11, central freq = 926.84MHz
 const uint32_t CH_12_900 = 0xE4C000; // default channel 915MHz, the module is configured with it
 
+//433Mhz
+const uint32_t CH_01_433 = 0x6c4745; // channel 1, bandwidth 125KHz, center frequency = 433.1125MHz ( 433.050MHz - 433.175MHz )
+const uint32_t CH_02_433 = 0x6c4fe1; // channel 2, bandwidth 125KHz, center frequency = 433.247MHz ( 433.1845MHz - 433.3095MHz )
+const uint32_t CH_03_433 = 0x6c587c; // channel 3, bandwidth 125KHz, center frequency = 433.3815MHz ( 433.319MHz - 433.444MHz )
+const uint32_t CH_04_433 = 0x6c6118; // channel 4, bandwidth 125KHz, center frequency = 433.516MHz ( 433.4535MHz - 433.5785MHz )
+const uint32_t CH_05_433 = 0x6c69b3; // channel 5, bandwidth 125KHz, center frequency = 433.6505MHz ( 433.588MHz - 433.713MHz )
+const uint32_t CH_06_433 = 0x6c724f; // channel 6, bandwidth 125KHz, center frequency = 433.785MHz ( 433.7225MHz - 433.8475MHz )
+const uint32_t CH_07_433 = 0x6c7af3; // channel 7, bandwidth 125KHz, center frequency = 433.92MHz ( 433.8575MHz - 433.9825MHz )
+const uint32_t CH_08_433 = 0x6c8397; // channel 8, bandwidth 125KHz, center frequency = 434.055MHz ( 433.9925MHz - 434.1175MHz )
+const uint32_t CH_09_433 = 0x6c8c32; // channel 9, bandwidth 125KHz, center frequency = 434.1895MHz ( 434.127MHz - 434.252MHz )
+const uint32_t CH_10_433 = 0x6c94ce; // channel 10, bandwidth 125KHz, center frequency = 434.324MHz ( 434.2615MHz - 434.3865MHz )
+const uint32_t CH_11_433 = 0x6c9d6a; // channel 11, bandwidth 125KHz, center frequency = 434.4585MHz ( 434.396MHz - 434.521MHz )
+const uint32_t CH_12_433 = 0x6ca605; // channel 12, bandwidth 125KHz, center frequency = 434.593MHz ( 434.5305MHz - 434.6555MHz )
+const uint32_t CH_13_433 = 0x6CaeA1; // channel 13, bandwidth 125KHz, center frequency = 434.7275MHz ( 434.665MHz - 434.790MHz )
 //LORA BANDWIDTH:
 // modified by C. Pham
 const uint8_t SX1272_BW_125 = 0x00;

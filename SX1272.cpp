@@ -2465,7 +2465,23 @@ boolean	SX1272::isChannel(uint32_t ch)
     case CH_08_900:
     case CH_09_900:
     case CH_10_900:
-    case CH_11_900:	return true;
+    case CH_11_900:	
+	//433Mhz
+	case CH_00_433:
+    case CH_01_433:
+    case CH_02_433:
+    case CH_03_433:
+    case CH_04_433:
+    case CH_05_433:
+    case CH_06_433:
+    case CH_07_433:
+    case CH_08_433:
+    case CH_09_433:
+    case CH_10_433:
+    case CH_11_433:
+	case CH_12_433:
+	case CH_13_433:	
+	return true;
         break;
 
     default:			return false;
