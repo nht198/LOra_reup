@@ -634,21 +634,19 @@ void CarrierSense() {
 }
 
 void loop(void)
-{
+{ 
   int i=0, e;
   int cmdValue;
 
-//////////////////////////
+//////////////////////////  
 // START OF PERIODIC TASKS
 
   receivedFromSerial=false;
   receivedFromLoRa=false;
 
-
-
-// handle keyboard input from a UNIX terminal
-
   if (radioON && !receivedFromSerial) {
+
+
       if (!e) {
          int a=0, b=0;
          uint8_t tmp_length;
@@ -658,41 +656,41 @@ void loop(void)
          sx1272.getRSSIpacket();
 
          tmp_length=sx1272._payloadlength;
-
-         sprintf(sprintf_buf,"--- rxlora. dst=%d type=0x%.2X src=%d seq=%d len=%d SNR=%d RSSIpkt=%d BW=%d CR=4/%d SF=%d\n",
+         
+         sprintf(sprintf_buf,"--- rxlora. dst=%d type=0x%.2X src=%d seq=%d len=%d SNR=%d RSSIpkt=%d BW=%d CR=4/%d SF=%d\n", 
                    sx1272.packet_received.dst,
-                   sx1272.packet_received.type,
+                   sx1272.packet_received.type, 
                    sx1272.packet_received.src,
                    sx1272.packet_received.packnum,
-                   tmp_length,
+                   tmp_length, 
                    sx1272._SNR,
                    sx1272._RSSIpacket,
                    (sx1272._bandwidth==BW_125)?125:((sx1272._bandwidth==BW_250)?250:500),
                    sx1272._codingRate+4,
                    sx1272._spreadingFactor);
-
+                   
          PRINT_STR("%s",sprintf_buf);
 
          // provide a short output for external program to have information about the received packet
          // ^psrc_id,seq,len,SNR,RSSI
          sprintf(sprintf_buf,"^p%d,%d,%d,%d,%d,%d,%d\n",
                    sx1272.packet_received.dst,
-                   sx1272.packet_received.type,
+                   sx1272.packet_received.type,                   
                    sx1272.packet_received.src,
-                   sx1272.packet_received.packnum,
+                   sx1272.packet_received.packnum, 
                    tmp_length,
                    sx1272._SNR,
                    sx1272._RSSIpacket);
-
-         PRINT_STR("%s",sprintf_buf);
+                   
+         PRINT_STR("%s",sprintf_buf);          
 
          // ^rbw,cr,sf
-         sprintf(sprintf_buf,"^r%d,%d,%d\n",
+         sprintf(sprintf_buf,"^r%d,%d,%d\n", 
                    (sx1272._bandwidth==BW_125)?125:((sx1272._bandwidth==BW_250)?250:500),
                    sx1272._codingRate+4,
                    sx1272._spreadingFactor);
-
-         PRINT_STR("%s",sprintf_buf);
+                   
+         PRINT_STR("%s",sprintf_buf);  
 
 // for Linux-based gateway only
 ///////////////////////////////
@@ -701,71 +699,77 @@ void loop(void)
          int millisec;
          struct tm* tm_info;
          struct timeval tv;
-
+        
          gettimeofday(&tv, NULL);
-
+        
          millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
-
+         
          if (millisec>=1000) { // Allow for rounding up to nearest second
             millisec -=1000;
             tv.tv_sec++;
          }
-
+        
          tm_info = localtime(&tv.tv_sec);
-
+        
          strftime(buffer, 30, "%Y-%m-%dT%H:%M:%S", tm_info);
 
          sprintf(sprintf_buf, "^t%s.%03d\n", buffer, millisec);
 
          PRINT_STR("%s",sprintf_buf);
 #endif
-
-#ifdef WITH_DATA_PREFIX
-         PRINT_STR("%c",(char)DATA_PREFIX_0);
-         PRINT_STR("%c",(char)DATA_PREFIX_1);
-#endif
-#endif
+         
+                            
          for ( ; a<tmp_length; a++,b++) {
            PRINT_STR("%c",(char)sx1272.packet_received.data[a]);
-
+           
            cmd[b]=(char)sx1272.packet_received.data[a];
          }
-
+         
          // strlen(cmd) will be correct as only the payload is copied
-         cmd[b]='\0';
+         cmd[b]='\0';    
          PRINTLN;
          FLUSHOUTPUT;
+         
+#if not defined ARDUINO && defined WINPUT
+        // if we received something, display again the current input 
+        // that has still not be terminated
+        if (keyIndex) {
+              PRINT_CSTSTR("%s","keyboard input : ");
+              PRINT_STR("%s",keyPressBuff);
+              PRINTLN;
+        }
 
-}
-
+#endif          
+      }  
+  }  
+  
   if (receivedFromSerial || receivedFromLoRa) {
-
+    
     boolean sendCmd=false;
     boolean withTmpAck=false;
     int forTmpDestAddr=-1;
-
-
+    
+    
     i=0;
-
+    
     if (cmd[i]=='/' && cmd[i+1]=='@') {
 
-      PRINT_CSTSTR("%s","^$Parsing command\n");
+      PRINT_CSTSTR("%s","^$Parsing command\n");      
       i=2;
-
+      
       PRINT_CSTSTR("%s","^$");
       PRINT_STR("%s",cmd);
       PRINTLN;
-
+      
       if ( (receivedFromLoRa && cmd[i]!='U' && !unlocked) || !unlocked_try) {
         PRINT_CSTSTR("%s","^$Remote config locked\n");
         // just assign an unknown command
-        cmd[i]='*';
+        cmd[i]='*';  
       }
-
+      
       switch (cmd[i]) {
 
-
-            case 'S':
+            case 'S': 
 
               if (cmd[i+1]=='F') {
                   i=i+2;
@@ -773,16 +777,16 @@ void loop(void)
 
                   if (cmdValue > 5 && cmdValue < 13) {
                       PRINT_CSTSTR("%s","^$set SF: ");
-                      PRINT_VALUE("%d",cmdValue);
-                      PRINTLN;
+                      PRINT_VALUE("%d",cmdValue);  
+                      PRINTLN;                    
                       // Set spreading factor
                       e = sx1272.setSF(cmdValue);
                       PRINT_CSTSTR("%s","^$set SF: state ");
-                      PRINT_VALUE("%d",e);
-                      PRINTLN;
+                      PRINT_VALUE("%d",e);  
+                      PRINTLN;   
                   }
               }
-              else {
+              else {            
                   i++;
                   cmdValue=getCmdValue(i);
                   i++;
@@ -794,12 +798,12 @@ void loop(void)
                     // fill the message to be sent
                     for (k=0; k<cmdValue; k++)
                       cmd[k+i]='#';
-                    cmd[k+i]='\0';
-                    sendCmd=true;
+                    cmd[k+i]='\0';  
+                    sendCmd=true; 
                   }
-              }
-            break;
-
+              }                    
+            break;  
+            
             case 'M':
               i++;
               cmdValue=getCmdValue(i);
@@ -809,18 +813,20 @@ void loop(void)
               // cannot set mode lower than 0
               if (cmdValue < 0)
                       cmdValue = 4;
-              // set dest addr
-              loraMode=cmdValue;
-
+              // set dest addr        
+              loraMode=cmdValue; 
+              
               PRINT_CSTSTR("%s","^$Set LoRa mode to ");
               PRINT_VALUE("%d",loraMode);
               PRINTLN;
               // Set transmission mode and print the result
               e = sx1272.setMode(loraMode);
               PRINT_CSTSTR("%s","^$LoRa mode: state ");
-              PRINT_VALUE("%d",e);
-              PRINTLN;
+              PRINT_VALUE("%d",e);  
+              PRINTLN;              
 
+              loraLAS.setSIFS(loraMode);
+#endif
               // get preamble length
               e = sx1272.getPreambleLength();
               PRINT_CSTSTR("%s","Get Preamble Length: state ");
@@ -828,7 +834,7 @@ void loop(void)
               PRINTLN;
               PRINT_CSTSTR("%s","Preamble Length: ");
               PRINT_VALUE("%d",sx1272._preamblelength);
-              PRINTLN;
+              PRINTLN;                
             break;
 
             case 'W':
@@ -837,63 +843,62 @@ void loop(void)
 
               // we expect an HEX format value
               cmdValue = (cmdValue / 10)*16 + (cmdValue % 10);
-
+              
               // cannot set sync word greater than 255
               if (cmdValue > 255)
                       cmdValue = 0x12;
               // cannot set sync word lower than 0
               if (cmdValue <= 0)
                       cmdValue = 0x12;
-
+              
               PRINT_CSTSTR("%s","^$Set sync word to 0x");
-              PRINT_VALUE("%X", cmdValue);
               PRINTLN;
               e = sx1272.setSyncWord(cmdValue);
               PRINT_CSTSTR("%s","^$LoRa sync word: state ");
-              PRINT_VALUE("%d",e);
-              PRINTLN;
+              PRINT_VALUE("%d",e);  
+              PRINTLN;                
             break;
-
-            case 'C':
-
+            
+            case 'C': 
+             
               if (cmd[i+1]=='A' && cmd[i+2]=='D') {
-
+                
                   if (cmd[i+3]=='O' && cmd[i+4]=='N') {
                        i=i+5;
                        cmdValue=getCmdValue(i);
                        // cannot set send_cad_number greater than 255
                        if (cmdValue > 255)
                               cmdValue = 255;
-
-                       send_cad_number=cmdValue;
-
+                              
+                       send_cad_number=cmdValue; 
+                      
                        PRINT_CSTSTR("%s","Set send_cad_number to ");
                        PRINT_VALUE("%d",send_cad_number);
                        PRINTLN;
-                       break;
-                  }
-
+                       break;                       
+                  } 
+                    
                   if (cmd[i+3]=='O' && cmd[i+4]=='F' && cmd[i+5]=='F' ) {
                        send_cad_number=0;
                        break;
                   }
-
+                  
                   startDoCad=millis();
-                  e = sx1272.doCAD(SIFS_cad_number);
+                  e = sx1272.doCAD(SIFS_cad_number);                  
                   endDoCad=millis();
 
                   PRINT_CSTSTR("%s","--> SIFS duration ");
                   PRINT_VALUE("%ld",endDoCad-startDoCad);
-                  PRINTLN;
-
-                  if (!e)
+                  PRINTLN; 
+                    
+                  if (!e) 
                       PRINT_CSTSTR("%s","OK");
                   else
                       PRINT_CSTSTR("%s","###");
-
+                    
                   PRINTLN;
               }
-              else {
+              else {      
                   i++;
                   cmdValue=getCmdValue(i);
 
@@ -901,52 +906,52 @@ void loop(void)
                     loraChannelIndex=STARTING_CHANNEL;
                   else
                     loraChannelIndex=cmdValue;
-
-                  loraChannelIndex=loraChannelIndex-STARTING_CHANNEL;
+                      
+                  loraChannelIndex=loraChannelIndex-STARTING_CHANNEL;  
                   loraChannel=loraChannelArray[loraChannelIndex];
-
+                  
                   PRINT_CSTSTR("%s","^$Set LoRa channel to ");
                   PRINT_VALUE("%d",cmdValue);
                   PRINTLN;
-
+                  
                   // Select frequency channel
                   e = sx1272.setChannel(loraChannel);
                   PRINT_CSTSTR("%s","^$Setting Channel: state ");
-                  PRINT_VALUE("%d",e);
+                  PRINT_VALUE("%d",e);  
                   PRINTLN;
                   PRINT_CSTSTR("%s","Time: ");
-                  PRINT_VALUE("%d",sx1272._stoptime-sx1272._starttime);
-                  PRINTLN;
-              }
+                  PRINT_VALUE("%d",sx1272._stoptime-sx1272._starttime);  
+                  PRINTLN;                  
+              }              
             break;
 
-            case 'P':
+            case 'P': 
 
               if (cmd[i+1]=='L' || cmd[i+1]=='H' || cmd[i+1]=='M' || cmd[i+1]=='x' || cmd[i+1]=='X' ) {
                 loraPower=cmd[i+1];
 
                 PRINT_CSTSTR("%s","^$Set LoRa Power to ");
-                PRINT_VALUE("%c",loraPower);
-                PRINTLN;
-
+                PRINT_VALUE("%c",loraPower);  
+                PRINTLN;                
+                 
                 e = sx1272.setPower(loraPower);
                 PRINT_CSTSTR("%s","^$Setting Power: state ");
-                PRINT_VALUE("%d",e);
-                PRINTLN;
+                PRINT_VALUE("%d",e);  
+                PRINTLN; 
               }
               else
-                PRINT_CSTSTR("%s","Invalid Power. L, H, M, x or X accepted.\n");
+                PRINT_CSTSTR("%s","Invalid Power. L, H, M, x or X accepted.\n");          
             break;
-
-            case 'A':
-
-              if (cmd[i+1]=='C' && cmd[i+2]=='K') {
+            
+            case 'A': 
+              
+              if (cmd[i+1]=='C' && cmd[i+2]=='K') {    
 
                 if (cmd[i+3]=='#') {
                   // point to the start of the message, skip /@ACK#
                   i=6;
                   withTmpAck=true;
-                  sendCmd=true;
+                  sendCmd=true;         
                 }
                 else {
 
@@ -954,80 +959,82 @@ void loop(void)
                     withAck=true;
                     PRINT_CSTSTR("%s","^$ACK enabled\n");
                   }
-
+                  
                   if (cmd[i+3]=='O' && cmd[i+4]=='F' && cmd[i+5]=='F') {
-                    withAck=false;
-                    PRINT_CSTSTR("%s","^$ACK disabled\n");
+                    withAck=false;    
+                    PRINT_CSTSTR("%s","^$ACK disabled\n");              
                   }
                 }
               }
               else {
-
+              
                 i++;
                 cmdValue=getCmdValue(i);
-
+                
                 // cannot set addr greater than 255
                 if (cmdValue > 255)
                         cmdValue = 255;
                 // cannot set addr lower than 1 since 0 is broadcast
                 if (cmdValue < 1)
                         cmdValue = LORA_ADDR;
-                // set node addr
-                loraAddr=cmdValue;
-
+                // set node addr        
+                loraAddr=cmdValue; 
+                
                 PRINT_CSTSTR("%s","^$Set LoRa node addr to ");
-                PRINT_VALUE("%d",loraAddr);
+                PRINT_VALUE("%d",loraAddr);  
                 PRINTLN;
                 // Set the node address and print the result
                 e = sx1272.setNodeAddress(loraAddr);
                 PRINT_CSTSTR("%s","^$Setting LoRa node addr: state ");
-                PRINT_VALUE("%d",e);
-                PRINTLN;
-              }
+                PRINT_VALUE("%d",e);     
+                PRINTLN;            
+              }     
             break;
 
-            case 'O':
+            case 'O': 
 
               if (cmd[i+1]=='N') {
-
+                
                   PRINT_CSTSTR("%s","^$Setting LoRa module to ON");
-
+                  
                   // Power ON the module
                   e = sx1272.ON();
                   PRINT_CSTSTR("%s","^$Setting power ON: state ");
-                  PRINT_VALUE("%d",e);
+                  PRINT_VALUE("%d",e);     
                   PRINTLN;
-
+                  
                   if (!e) {
                     radioON=true;
                     startConfig();
                   }
-
-                  delay(500);
+                  
+                  delay(500);            
               }
               else
                if (cmd[i+1]=='F' && cmd[i+2]=='F') {
                 PRINT_CSTSTR("%s","^$Setting LoRa module to OFF\n");
-
+                
                 // Power OFF the module
-                sx1272.OFF();
-                radioON=false;
+                sx1272.OFF(); 
+                radioON=false;             
                }
                else
-                 PRINT_CSTSTR("%s","Invalid command. ON or OFF accepted.\n");
-            break;
+                 PRINT_CSTSTR("%s","Invalid command. ON or OFF accepted.\n");          
+            break;            
+
             default:
 
-              PRINT_CSTSTR("%s","Unrecognized cmd\n");
+              PRINT_CSTSTR("%s","Unrecognized cmd\n");       
               break;
       }
       FLUSHOUTPUT;
     }
     else
-     sendCmd=true;
+     sendCmd=true; 
 
   } // end of "if (receivedFromSerial || receivedFromLoRa)"
-}
+} 
+
 
 // for Linux-based gateway only
 ///////////////////////////////
