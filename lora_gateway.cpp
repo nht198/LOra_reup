@@ -411,7 +411,7 @@ void startConfig() {
   }
   else {
     // work also for loraMode 0
-    e = sx1272.setChannel(0x6c5345);
+    e = sx1272.setChannel(0x6c4b45);
 
     if (optFQ>0.0) {
       PRINT_CSTSTR("%s","^$Frequency ");
