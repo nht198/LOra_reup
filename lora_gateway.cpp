@@ -239,6 +239,7 @@
 #define ENDING_CHANNEL 18
 uint8_t loraChannelIndex=0;
 uint32_t loraChannelArray[MAX_NB_CHANNEL]={CH_10_868,CH_11_868,CH_12_868,CH_13_868,CH_14_868,CH_15_868,CH_16_868,CH_17_868,CH_18_868};
+#endif
 
 // use the dynamic ACK feature of our modified SX1272 lib
 #define GW_AUTO_ACK
