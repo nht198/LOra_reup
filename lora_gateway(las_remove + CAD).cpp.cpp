@@ -243,6 +243,9 @@ uint32_t loraChannelArray[MAX_NB_CHANNEL]={CH_10_868,CH_11_868,CH_12_868,CH_13_8
 // use the dynamic ACK feature of our modified SX1272 lib
 #define GW_AUTO_ACK
 
+#ifdef WITH_SEND_LED
+#define SEND_LED  44
+#endif
 
 #define DEFAULT_DEST_ADDR 1
 
@@ -486,6 +489,7 @@ void setup()
 {
   int e;
   srand (time(NULL));
+#endif
 
   // Power ON the module
   e = sx1272.ON();
@@ -506,7 +510,11 @@ void setup()
     e = sx1272.setSyncWord(optSW);
 
     PRINT_CSTSTR("%s","^$Set sync word to 0x");
+#ifdef ARDUINO
+    Serial.print(optSW, HEX);
+#else
     PRINT_VALUE("%X", optSW);
+#endif
 
     PRINTLN;
     PRINT_CSTSTR("%s","^$LoRa sync word: state ");
@@ -521,6 +529,10 @@ void setup()
 
   FLUSHOUTPUT;
   delay(1000);
+
+#ifdef CAD_TEST
+  PRINT_CSTSTR("%s","Do CAD test\n");
+#endif
 }
 
 // we could use the CarrierSense function added in the SX1272 library, but it is more convenient to duplicate it here
@@ -633,7 +645,46 @@ void loop(void)
 {
   int i=0, e;
   int cmdValue;
+///////////////////////
+// ONLY FOR TESTING CAD
+#ifdef CAD_TEST
 
+  startDoCad=millis();
+  e = sx1272.doCAD(SIFS_cad_number);
+  endDoCad=millis();
+
+  PRINT_CSTSTR("%s","--> SIFS duration ");
+  PRINT_VALUE("%ld", endDoCad-startDoCad);
+  PRINTLN;
+
+  if (!e)
+    PRINT_CSTSTR("%s","OK");
+  else
+    PRINT_CSTSTR("%s","###");
+
+  PRINTLN;
+
+  delay(200);
+
+  startDoCad=millis();
+  e = sx1272.doCAD(SIFS_cad_number*3);
+  endDoCad=millis();
+
+  PRINT_CSTSTR("%s","--> DIFS duration ");
+  PRINT_VALUE("%ld", endDoCad-startDoCad);
+  PRINTLN;
+
+  if (!e)
+    PRINT_CSTSTR("%s","OK");
+  else
+    PRINT_CSTSTR("%s","###");
+
+  PRINTLN;
+
+  delay(200);
+#endif
+// ONLY FOR TESTING CAD
+///END/////////////////
 
 //////////////////////////
 // START OF PERIODIC TASKS
@@ -644,6 +695,39 @@ void loop(void)
 
 
 // handle keyboard input from a UNIX terminal
+#if not defined ARDUINO && defined WINPUT
+
+  while (unistd::read(0, &ch, 1)) {
+
+	if (ch == '\n') {
+
+		strcpy(cmd,keyPressBuff);
+                PRINT_CSTSTR("%s","Cmd from keyboard: ");
+                PRINT_STR("%s",cmd);
+                PRINTLN;
+
+		keyIndex=0;
+                receivedFromSerial=true;
+	}
+	else {
+        	// backspace
+        	if (ch == 127 || ch==8) {
+        		keyIndex--;
+        	}
+        	else {
+
+        		keyPressBuff[keyIndex]=(char)ch;
+        		keyIndex++;
+        	}
+        }
+
+	keyPressBuff[keyIndex]='\0';
+
+        PRINT_CSTSTR("%s","keyboard input : ");
+        PRINT_STR("%s",keyPressBuff);
+        PRINTLN;
+  }
+#endif
 
   if (radioON && !receivedFromSerial) {
 
@@ -677,8 +761,14 @@ void loop(void)
 
           long startSend=millis();
 
+#ifdef WITH_SEND_LED
+          digitalWrite(SEND_LED, HIGH);
+#endif
           e = sx1272.sendPacketTimeout(dest_addr, (uint8_t*)cmd, strlen(cmd), 10000);
 
+#ifdef WITH_SEND_LED
+          digitalWrite(SEND_LED, LOW);
+#endif
           PRINT_CSTSTR("%s","LoRa Sent in ");
           PRINT_VALUE("%ld",millis()-startSend);
           PRINTLN;
@@ -837,7 +927,18 @@ void loop(void)
          PRINTLN;
          FLUSHOUTPUT;
 
-}
+#if not defined ARDUINO && defined WINPUT
+        // if we received something, display again the current input
+        // that has still not be terminated
+        if (keyIndex) {
+              PRINT_CSTSTR("%s","keyboard input : ");
+              PRINT_STR("%s",keyPressBuff);
+              PRINTLN;
+        }
+
+#endif
+      }
+  }
 
   if (receivedFromSerial || receivedFromLoRa) {
 
@@ -974,6 +1075,31 @@ void loop(void)
 #endif
 // ONLY FOR END-DEVICE SENDING MESSAGES TO BASE STATION
 ///END/////////////////////////////////////////////////
+
+#ifdef IS_RCV_GATEWAY
+            case 'U':
+
+              if (unlocked_try) {
+                i++;
+                cmdValue=getCmdValue(i);
+
+                if (cmdValue==UNLOCK_PIN) {
+
+                  unlocked=!unlocked;
+
+                  if (unlocked)
+                    PRINT_CSTSTR("%s","^$Unlocked\n");
+                  else
+                    PRINT_CSTSTR("%s","^$Locked\n");
+                }
+                else
+                  unlocked_try--;
+
+                if (unlocked_try==0)
+                  PRINT_CSTSTR("%s","^$Bad pin\n");
+              }
+            break;
+#endif
 
             case 'S':
 
@@ -1328,6 +1454,25 @@ void loop(void)
 ///////////////////////////////
 #ifndef ARDUINO
 
+#ifdef WINPUT
+// when CTRL-C is pressed
+// set back the correct terminal settings
+void  INThandler(int sig)
+{
+    struct termios old = {0};
+
+    if (tcgetattr(0, &old) < 0)
+                perror("tcsetattr()");
+    old.c_lflag |= ICANON;
+    old.c_lflag |= ECHO;
+    if (tcsetattr(0, TCSADRAIN, &old) < 0)
+                perror ("tcsetattr ~ICANON");
+
+    PRINT_CSTSTR("%s","Bye.\n");
+    exit(0);
+}
+#endif
+
 int main (int argc, char *argv[]){
 
   int opt=0;
@@ -1388,6 +1533,26 @@ int main (int argc, char *argv[]){
            //    exit(EXIT_FAILURE);
       }
   }
+
+#ifdef WINPUT
+  // set termios options to remove echo and to have non blocking read from
+  // standard input (e.g. keyboard)
+  struct termios old = {0};
+  if (tcgetattr(0, &old) < 0)
+              perror("tcsetattr()");
+  // non-blocking noncanonical mode
+  old.c_lflag &= ~ICANON;
+  old.c_lflag &= ~ECHO;
+  // VMIN and VTIME are 0 for non-blocking
+  old.c_cc[VMIN] = 0;
+  old.c_cc[VTIME] = 0;
+
+  if (tcsetattr(0, TCSANOW, &old) < 0)
+          perror("tcsetattr ICANON");
+
+  // we catch the CTRL-C key
+  signal(SIGINT, INThandler);
+#endif
 
   setup();
 

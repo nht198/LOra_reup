@@ -243,9 +243,6 @@ uint32_t loraChannelArray[MAX_NB_CHANNEL]={CH_10_868,CH_11_868,CH_12_868,CH_13_8
 // use the dynamic ACK feature of our modified SX1272 lib
 #define GW_AUTO_ACK
 
-#ifdef WITH_SEND_LED
-#define SEND_LED  44
-#endif
 
 #define DEFAULT_DEST_ADDR 1
 
@@ -413,7 +410,7 @@ void startConfig() {
   }
   else {
     // work also for loraMode 0
-    e = sx1272.setChannel(loraChannel);
+    e = sx1272.setChannel(0x6c5345);
 
     if (optFQ>0.0) {
       PRINT_CSTSTR("%s","^$Frequency ");
@@ -489,7 +486,6 @@ void setup()
 {
   int e;
   srand (time(NULL));
-#endif
 
   // Power ON the module
   e = sx1272.ON();
@@ -510,11 +506,7 @@ void setup()
     e = sx1272.setSyncWord(optSW);
 
     PRINT_CSTSTR("%s","^$Set sync word to 0x");
-#ifdef ARDUINO
-    Serial.print(optSW, HEX);
-#else
     PRINT_VALUE("%X", optSW);
-#endif
 
     PRINTLN;
     PRINT_CSTSTR("%s","^$LoRa sync word: state ");
@@ -695,39 +687,6 @@ void loop(void)
 
 
 // handle keyboard input from a UNIX terminal
-#if not defined ARDUINO && defined WINPUT
-
-  while (unistd::read(0, &ch, 1)) {
-
-	if (ch == '\n') {
-
-		strcpy(cmd,keyPressBuff);
-                PRINT_CSTSTR("%s","Cmd from keyboard: ");
-                PRINT_STR("%s",cmd);
-                PRINTLN;
-
-		keyIndex=0;
-                receivedFromSerial=true;
-	}
-	else {
-        	// backspace
-        	if (ch == 127 || ch==8) {
-        		keyIndex--;
-        	}
-        	else {
-
-        		keyPressBuff[keyIndex]=(char)ch;
-        		keyIndex++;
-        	}
-        }
-
-	keyPressBuff[keyIndex]='\0';
-
-        PRINT_CSTSTR("%s","keyboard input : ");
-        PRINT_STR("%s",keyPressBuff);
-        PRINTLN;
-  }
-#endif
 
   if (radioON && !receivedFromSerial) {
 
@@ -761,14 +720,8 @@ void loop(void)
 
           long startSend=millis();
 
-#ifdef WITH_SEND_LED
-          digitalWrite(SEND_LED, HIGH);
-#endif
           e = sx1272.sendPacketTimeout(dest_addr, (uint8_t*)cmd, strlen(cmd), 10000);
 
-#ifdef WITH_SEND_LED
-          digitalWrite(SEND_LED, LOW);
-#endif
           PRINT_CSTSTR("%s","LoRa Sent in ");
           PRINT_VALUE("%ld",millis()-startSend);
           PRINTLN;
@@ -927,18 +880,7 @@ void loop(void)
          PRINTLN;
          FLUSHOUTPUT;
 
-#if not defined ARDUINO && defined WINPUT
-        // if we received something, display again the current input
-        // that has still not be terminated
-        if (keyIndex) {
-              PRINT_CSTSTR("%s","keyboard input : ");
-              PRINT_STR("%s",keyPressBuff);
-              PRINTLN;
-        }
-
-#endif
-      }
-  }
+}
 
   if (receivedFromSerial || receivedFromLoRa) {
 
@@ -966,140 +908,6 @@ void loop(void)
 
       switch (cmd[i]) {
 
-#ifdef IS_SEND_GATEWAY
-///////////////////////////////////////////////////////
-// ONLY FOR END-DEVICE SENDING MESSAGES TO BASE STATION
-
-            case 'D':
-              i++;
-              cmdValue=getCmdValue(i);
-
-              i++;
-              // cannot set dest addr greater than 255
-              if (cmdValue > 255)
-                      cmdValue = 255;
-              // cannot set dest addr lower than 0, 0 is broadcast
-              if (cmdValue < 0)
-                      cmdValue = 0;
-
-              // only a D command
-              if (i==strlen(cmd)) {
-                  // set dest addr permanently
-                  dest_addr=cmdValue;
-                  PRINT_CSTSTR("%s","Set LoRa dest addr to ");
-                  PRINT_VALUE("%d",dest_addr);
-                  PRINTLN;
-              }
-              else {
-                  // only for the following ASCII command
-                  forTmpDestAddr=cmdValue;
-                  PRINT_CSTSTR("%s","Set LoRa dest addr FOR THIS ASCII STRING to ");
-                  PRINT_VALUE("%d",forTmpDestAddr);
-                  PRINTLN;
-                  sendCmd=true;
-              }
-            break;
-
-            case 'T':
-              i++;
-
-              if (cmd[i]=='R') {
-                random_inter_pkt_time=1;
-                i++;
-              }
-              else
-                random_inter_pkt_time=0;
-
-              cmdValue=getCmdValue(i);
-
-              inter_pkt_time=cmdValue;
-
-              if (inter_pkt_time) {
-                PRINT_CSTSTR("%s","Set inter-packet time to ");
-                PRINT_VALUE("%ld",inter_pkt_time);
-                PRINTLN;
-                last_periodic_sendtime=millis();
-              }
-              else {
-                PRINT_CSTSTR("%s","Disable periodic send\n");
-              }
-
-              if (random_inter_pkt_time)
-                random_inter_pkt_time = rand() % inter_pkt_time + 2000;
-            break;
-
-            // set the pkt size default is 40
-            // "Z250#"
-            case 'Z':
-              i++;
-              cmdValue=getCmdValue(i);
-              // cannot set pkt size greater than MAX_PKT_SIZE
-              if (cmdValue > 250)
-                      cmdValue = 250;
-              // cannot set pkt size smaller than MAX_PKT_SIZE
-              if (cmdValue < 10)
-                      cmdValue = 10;
-              // set new pkt size
-              MSS=cmdValue;
-
-              PRINT_CSTSTR("%s","Set MSS to ");
-              PRINT_VALUE("%d",MSS);
-              PRINTLN;
-            break;
-
-            case 'R':
-              if (cmd[i+1]=='S' && cmd[i+2]=='S' && cmd[i+3]=='I') {
-
-                RSSIonSend = !RSSIonSend;
-
-                if (RSSIonSend)
-                  PRINT_CSTSTR("%s","RSSI ON\n");
-                else
-                  PRINT_CSTSTR("%s","RSSI OFF\n");
-              }
-            break;
-
-            case 'E':
-
-              if (cmd[i+1]=='I' && cmd[i+2]=='F' && cmd[i+3]=='S') {
-
-                extendedIFS = !extendedIFS;
-
-                if (extendedIFS)
-                  PRINT_CSTSTR("%s","EIFS ON\n");
-                else
-                  PRINT_CSTSTR("%s","EIFS OFF\n");
-              }
-            break;
-
-#endif
-// ONLY FOR END-DEVICE SENDING MESSAGES TO BASE STATION
-///END/////////////////////////////////////////////////
-
-#ifdef IS_RCV_GATEWAY
-            case 'U':
-
-              if (unlocked_try) {
-                i++;
-                cmdValue=getCmdValue(i);
-
-                if (cmdValue==UNLOCK_PIN) {
-
-                  unlocked=!unlocked;
-
-                  if (unlocked)
-                    PRINT_CSTSTR("%s","^$Unlocked\n");
-                  else
-                    PRINT_CSTSTR("%s","^$Locked\n");
-                }
-                else
-                  unlocked_try--;
-
-                if (unlocked_try==0)
-                  PRINT_CSTSTR("%s","^$Bad pin\n");
-              }
-            break;
-#endif
 
             case 'S':
 
@@ -1454,25 +1262,6 @@ void loop(void)
 ///////////////////////////////
 #ifndef ARDUINO
 
-#ifdef WINPUT
-// when CTRL-C is pressed
-// set back the correct terminal settings
-void  INThandler(int sig)
-{
-    struct termios old = {0};
-
-    if (tcgetattr(0, &old) < 0)
-                perror("tcsetattr()");
-    old.c_lflag |= ICANON;
-    old.c_lflag |= ECHO;
-    if (tcsetattr(0, TCSADRAIN, &old) < 0)
-                perror ("tcsetattr ~ICANON");
-
-    PRINT_CSTSTR("%s","Bye.\n");
-    exit(0);
-}
-#endif
-
 int main (int argc, char *argv[]){
 
   int opt=0;
@@ -1533,26 +1322,6 @@ int main (int argc, char *argv[]){
            //    exit(EXIT_FAILURE);
       }
   }
-
-#ifdef WINPUT
-  // set termios options to remove echo and to have non blocking read from
-  // standard input (e.g. keyboard)
-  struct termios old = {0};
-  if (tcgetattr(0, &old) < 0)
-              perror("tcsetattr()");
-  // non-blocking noncanonical mode
-  old.c_lflag &= ~ICANON;
-  old.c_lflag &= ~ECHO;
-  // VMIN and VTIME are 0 for non-blocking
-  old.c_cc[VMIN] = 0;
-  old.c_cc[VTIME] = 0;
-
-  if (tcsetattr(0, TCSANOW, &old) < 0)
-          perror("tcsetattr ICANON");
-
-  // we catch the CTRL-C key
-  signal(SIGINT, INThandler);
-#endif
 
   setup();
 
