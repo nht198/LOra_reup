@@ -823,10 +823,7 @@ void loop(void)
               e = sx1272.setMode(loraMode);
               PRINT_CSTSTR("%s","^$LoRa mode: state ");
               PRINT_VALUE("%d",e);  
-              PRINTLN;              
-
-              loraLAS.setSIFS(loraMode);
-#endif
+              PRINTLN;
               // get preamble length
               e = sx1272.getPreambleLength();
               PRINT_CSTSTR("%s","Get Preamble Length: state ");
